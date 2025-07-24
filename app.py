@@ -98,7 +98,7 @@ if uploaded_file:
             col1, col2 = st.columns([2, 1])
 
             with col1:
-                st.dataframe(df.style.highlight_null(null_color='lightcoral'))
+                st.dataframe(df.style.highlight_null())
 
                 output = io.BytesIO()
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
