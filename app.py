@@ -39,16 +39,16 @@ def extract_invoice_data(text):
         entry["Договір"] = re.search(r"Договір[^\n:]*[:\s]*([^\n,]+)", content)
         entry["Сума без ПДВ"] = re.search(r"(?:Сума без ПДВ|Разом без ПДВ)[^\d]*(\d+[.,]?\d*)", content)
         entry["ПДВ"] = re.search(r"ПДВ[^\d]*(\d+[.,]?\d*)", content)
-        entry["Сума з ПДВ"] = re.search(r"(?:Всього|Разом|Загальна сума з ПДВ).*?(\\d+[.,]?\\d*)", content)
+        entry["Сума з ПДВ"] = re.search(r"(?:Всього|Разом|Загальна сума з ПДВ)[^\d]*(\d+[.,]?\d*)", content)
 
-        
-# Очищення результатів з перевіркою на None
-for key in entry:
-    if isinstance(entry[key], re.Match):
-        entry[key] = entry[key].group(1).strip()
-    else:
-        entry[key] = None
+        # Очищення результатів з перевіркою на None
+        for key in entry:
+            if isinstance(entry[key], re.Match):
+                entry[key] = entry[key].group(1).strip()
+            else:
+                entry[key] = None
 
+        data.append(entry)
 
     return data
 
