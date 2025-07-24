@@ -1,4 +1,3 @@
-
 import streamlit as st
 import fitz  # PyMuPDF
 import pandas as pd
@@ -17,31 +16,30 @@ def extract_text_from_pdf(pdf_file):
 def extract_invoice_data(text):
     data = []
 
-    # Розбиваємо текст на блоки за рахунками/актами
-    blocks = re.split(r"(Рахунок\s*№|Акт\s*№)", text, flags=re.IGNORECASE)
+    # Розширений шаблон для розбиття на блоки
+    blocks = re.split(r"(Рахунок(?:\s+фактура)?\s*№|Акт\s*№)", text, flags=re.IGNORECASE)
     if len(blocks) < 3:
         return []
 
-    # Обробляємо кожен блок
     for i in range(1, len(blocks), 2):
         doc_type = blocks[i].strip()
         content = blocks[i + 1]
 
         entry = {"Тип документа": doc_type}
 
-        # Витягуємо ключові поля
+        # Розширені регулярні вирази для пошуку полів
         entry["Номер документа"] = re.search(r"№\s*([A-Za-zА-Яа-я0-9\-/]+)", content)
-        entry["Дата"] = re.search(r"від\s*(\d{1,2}[./]\d{1,2}[./]\d{2,4})", content)
-        entry["Постачальник"] = re.search(r"(ТОВ|КП|КНП|ФОП|ПП|ПрАТ|АТ)[^\n,]+", content)
-        entry["ЄДРПОУ постачальника"] = re.search(r"ЄДРПОУ\s*[:№]?\s*(\d{8})", content)
+        entry["Дата"] = re.search(r"\b(?:від)?\s*(\d{1,2}[./]\d{1,2}[./]\d{2,4})", content)
+        entry["Постачальник"] = re.search(r"(ТОВ|КП|КНП|ФОП|ПП|ПрАТ|АТ|ПРИВАТНЕ АКЦІОНЕРНЕ ТОВАРИСТВО)[^\n,]+", content, re.IGNORECASE)
+        entry["ЄДРПОУ постачальника"] = re.search(r"(?:ЄДРПОУ|Код за ЄДРПОУ)\s*[:№]?\s*(\d{8})", content)
         entry["IBAN"] = re.search(r"UA[0-9A-Z]{25,29}", content)
         entry["МФО"] = re.search(r"МФО\s*[:№]?\s*(\d{6})", content)
-        entry["Одержувач"] = re.search(r"Одержувач[^\n:]*[:\s]*([^\n,]+)", content)
-        entry["ЄДРПОУ одержувача"] = re.search(r"ЄДРПОУ.*?(\d{8})", content)
+        entry["Одержувач"] = re.search(r"(?:Одержувач|Покупець)[^\n:]*[:\s]*([^\n,]+)", content)
+        entry["ЄДРПОУ одержувача"] = re.search(r"(?:ЄДРПОУ|Код за ЄДРПОУ).*?(\d{8})", content)
         entry["Договір"] = re.search(r"Договір[^\n:]*[:\s]*([^\n,]+)", content)
-        entry["Сума без ПДВ"] = re.search(r"Сума без ПДВ[^\d]*(\d+[.,]?\d*)", content)
+        entry["Сума без ПДВ"] = re.search(r"(?:Сума без ПДВ|Разом без ПДВ)[^\d]*(\d+[.,]?\d*)", content)
         entry["ПДВ"] = re.search(r"ПДВ[^\d]*(\d+[.,]?\d*)", content)
-        entry["Сума з ПДВ"] = re.search(r"(Всього|Разом).*?(\d+[.,]?\d*)", content)
+        entry["Сума з ПДВ"] = re.search(r"(?:Всього|Разом|Загальна сума з ПДВ).*?(\\d+[.,]?\\d*)", content)
 
         # Очищення результатів
         for key in entry:
