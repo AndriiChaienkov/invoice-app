@@ -95,24 +95,21 @@ if uploaded_file:
             df = pd.DataFrame(records)
             st.success(f"✅ Знайдено документів: {len(df)}")
 
-            col1, col2 = st.columns([2, 1])
+            styled_df = df.style.applymap(lambda v: 'background-color: lightcoral' if pd.isna(v) else '')
+            st.dataframe(styled_df)
 
-            with col1:
-                st.dataframe(df.style.highlight_null())
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                df.to_excel(writer, index=False, sheet_name="Документи")
+            st.download_button(
+                label="⬇️ Завантажити Excel",
+                data=output.getvalue(),
+                file_name="розпізнані_документи.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
-                output = io.BytesIO()
-                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                    df.to_excel(writer, index=False, sheet_name="Документи")
-                st.download_button(
-                    label="⬇️ Завантажити Excel",
-                    data=output.getvalue(),
-                    file_name="розпізнані_документи.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-
-            with col2:
-                st.markdown("### 🧾 JSON структура")
-                st.json(records, expanded=False)
+            st.markdown("### 🧾 JSON структура")
+            st.json(records, expanded=False)
 
         else:
             st.warning("⚠️ Не вдалося знайти жодного рахунку або акту в документі.")
