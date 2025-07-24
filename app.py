@@ -4,6 +4,43 @@ import pandas as pd
 import re
 import io
 
+# Кастомні стилі
+st.markdown("""
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Open+Sans&display=swap');
+
+        html, body, [class*="css"] {
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        .centered-title {
+            text-align: center;
+            font-family: 'Open Sans', sans-serif;
+            font-size: 2.5em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .stButton>button {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+
+        .stDownloadButton>button {
+            background-color: #3498db;
+            color: white;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# Центрований заголовок
+st.markdown('<div class="centered-title">📄 Розпізнавання рахунків та актів</div>', unsafe_allow_html=True)
+st.write("🔍 Завантаж PDF-файл з рахунками або актами, і я витягну ключові дані.")
+
+# Завантаження файлу
+uploaded_file = st.file_uploader("Завантаж PDF", type=["pdf"])
+
 # Функція для витягування тексту з PDF
 def extract_text_from_pdf(pdf_file):
     text = ""
@@ -15,8 +52,6 @@ def extract_text_from_pdf(pdf_file):
 # Функція для витягування ключових полів з тексту
 def extract_invoice_data(text):
     data = []
-
-    # Розширений шаблон для розбиття на блоки
     blocks = re.split(r"(Рахунок(?:\s+фактура)?\s*№|Акт\s*№)", text, flags=re.IGNORECASE)
     if len(blocks) < 3:
         return []
@@ -24,10 +59,8 @@ def extract_invoice_data(text):
     for i in range(1, len(blocks), 2):
         doc_type = blocks[i].strip()
         content = blocks[i + 1]
-
         entry = {"Тип документа": doc_type}
 
-        # Розширені регулярні вирази для пошуку полів
         entry["Номер документа"] = re.search(r"№\s*([A-Za-zА-Яа-я0-9\-/]+)", content)
         entry["Дата"] = re.search(r"\b(?:від)?\s*(\d{1,2}[./]\d{1,2}[./]\d{2,4})", content)
         entry["Постачальник"] = re.search(r"(ТОВ|КП|КНП|ФОП|ПП|ПрАТ|АТ|ПРИВАТНЕ АКЦІОНЕРНЕ ТОВАРИСТВО)[^\n,]+", content, re.IGNORECASE)
@@ -41,7 +74,6 @@ def extract_invoice_data(text):
         entry["ПДВ"] = re.search(r"ПДВ[^\d]*(\d+[.,]?\d*)", content)
         entry["Сума з ПДВ"] = re.search(r"(?:Всього|Разом|Загальна сума з ПДВ)[^\d]*(\d+[.,]?\d*)", content)
 
-        # Очищення результатів з перевіркою на наявність групи
         for key in entry:
             match = entry[key]
             if isinstance(match, re.Match) and match.lastindex:
@@ -53,21 +85,16 @@ def extract_invoice_data(text):
 
     return data
 
-# Інтерфейс Streamlit
-st.title("📄 Розпізнавання рахунків та актів")
-st.write("Завантаж PDF-файл з рахунками або актами, і я витягну ключові дані.")
-
-uploaded_file = st.file_uploader("Завантаж PDF", type=["pdf"])
-
+# Обробка файлу
 if uploaded_file:
-    with st.spinner("Обробка файлу..."):
+    with st.spinner("⏳ Обробка файлу..."):
         text = extract_text_from_pdf(uploaded_file)
         records = extract_invoice_data(text)
 
         if records:
             df = pd.DataFrame(records)
             st.success(f"✅ Знайдено документів: {len(df)}")
-            st.dataframe(df)
+            st.dataframe(df.style.highlight_null(null_color='lightcoral'))
 
             # Завантаження Excel
             output = io.BytesIO()
