@@ -41,10 +41,11 @@ def extract_invoice_data(text):
         entry["ПДВ"] = re.search(r"ПДВ[^\d]*(\d+[.,]?\d*)", content)
         entry["Сума з ПДВ"] = re.search(r"(?:Всього|Разом|Загальна сума з ПДВ)[^\d]*(\d+[.,]?\d*)", content)
 
-        # Очищення результатів з перевіркою на None
+        # Очищення результатів з перевіркою на наявність групи
         for key in entry:
-            if isinstance(entry[key], re.Match):
-                entry[key] = entry[key].group(1).strip()
+            match = entry[key]
+            if isinstance(match, re.Match) and match.lastindex:
+                entry[key] = match.group(1).strip()
             else:
                 entry[key] = None
 
